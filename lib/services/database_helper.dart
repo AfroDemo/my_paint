@@ -55,4 +55,10 @@ $columnSyncStatus TEXT NOT NULL
     Database db = await instance.database;
     return await db.insert(table, row);
   }
+
+  Future<List<Map<String, dynamic>>> queryAllRows() async {
+    Database db = await instance.database;
+
+    return await db.query(table);
+  }
 }
