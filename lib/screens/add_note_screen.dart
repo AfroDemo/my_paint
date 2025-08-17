@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:my_paint/models/note.dart';
+import 'package:my_paint/services/database_helper.dart';
 
 class AddNoteScreen extends StatefulWidget {
   const AddNoteScreen({super.key});
@@ -38,6 +39,12 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       updatedAt: now,
       syncStatus: 'pending_create',
     );
+
+    await DatabaseHelper.instance.insert(note.toMap());
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Note saved offline!')));
     Navigator.pop(context);
   }
 
