@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:my_paint/screens/home_screen.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  //initialize FFI for desktop platform like ubuntu
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+  
   runApp(const MyApp());
 }
 
