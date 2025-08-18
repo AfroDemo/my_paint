@@ -5,7 +5,8 @@ class DatabaseHelper {
   static final _databaseName = "MyPaint.db";
   static final _databaseVersion = 1;
 
-  static final table = "notes";
+  static final notesTable = "notes";
+  static final usersTable = "users";
 
   static final columnId = "id";
   static final columnTitle = "title";
@@ -14,6 +15,11 @@ class DatabaseHelper {
   static final columnCreatedAt = "created_at";
   static final columnUpdatedAt = "updated_at";
   static final columnSyncStatus = "sync_status";
+  static final columnLocalId = "local_id";
+  static final columnRemoteId = "remote_id";
+  static final columnUserName = "username";
+  static final columnEmail = "email";
+  static final columnPassword = "password";
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -39,26 +45,53 @@ class DatabaseHelper {
   //SQL code to create database table
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-CREATE TABLE $table(
-$columnId INTEGER PRIMARY KEY AUTOINCREMENT,
-$columnTitle TEXT NOT NULL,
-$columnContent TEXT NOT NULL,
-$columnPrivacyStatus TEXT NOT NULL,
-$columnCreatedAt TEXT NOT NULL,
-$columnUpdatedAt TEXT NOT NULL,
-$columnSyncStatus TEXT NOT NULL
-)
-''');
+    CREATE TABLE $notesTable(
+        $columnId INTEGER PRIMARY KEY AUTOINCREMENT,
+        $columnTitle TEXT NOT NULL,
+        $columnContent TEXT NOT NULL,
+        $columnPrivacyStatus TEXT NOT NULL,
+        $columnCreatedAt TEXT NOT NULL,
+        $columnUpdatedAt TEXT NOT NULL,
+        $columnSyncStatus TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE $usersTable (
+        $columnLocalId TEXT PRIMARY KEY,
+        $columnRemoteId INTEGER,
+        $columnUserName TEXT NOT NULL,
+        $columnEmail TEXT NOT NULL,
+        $columnPassword TEXT NOT NULL,
+        $columnSyncStatus TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<int> insert(Map<String, dynamic> row) async {
     Database db = await instance.database;
-    return await db.insert(table, row);
+    return await db.insert(notesTable, row);
   }
 
   Future<List<Map<String, dynamic>>> queryAllRows() async {
     Database db = await instance.database;
 
-    return await db.query(table);
+    return await db.query(notesTable);
+  }
+
+  Future<int> insertUser(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.insert(usersTable, row);
+  }
+
+  Future<int> updateUser(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    String localId = row[columnLocalId];
+    return await db.update(
+      usersTable,
+      row,
+      where: '$columnLocalId = ?',
+      whereArgs: [localId],
+    );
   }
 }
