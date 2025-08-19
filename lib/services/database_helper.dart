@@ -1,3 +1,4 @@
+import 'package:my_paint/models/note.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:my_paint/models/user.dart';
@@ -175,6 +176,19 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> queryAllRows() async {
     Database db = await instance.database;
     return await db.query(notesTable);
+  }
+
+  Future<List<Note>> queryPendingNotes() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      notesTable,
+      where: '$columnSyncStatus!=?',
+      whereArgs: ['synced'],
+    );
+
+    return List.generate(maps.length, (i) {
+      return Note.fromMap(maps[i]);
+    });
   }
 
   Future<int> insertUser(Map<String, dynamic> row) async {
