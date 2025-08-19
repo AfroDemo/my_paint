@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:my_paint/services/api_service.dart';
+import 'package:my_paint/models/user.dart'; // Import the new User model
+import 'package:my_paint/services/database_helper.dart'; // Import the database helper
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -12,7 +13,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final ApiService _apiService = ApiService();
+
   void _registration() async {
     final username = _usernameController.text;
     final email = _emailController.text;
@@ -27,28 +28,28 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return;
     }
 
+    // Create a new User object with a 'pending_create' status
+    final user = User(
+      userName: username,
+      email: email,
+      password: password,
+      syncStatus: 'pending_create',
+    );
+
     try {
-      // Pass all three values to the service
-      final response = await _apiService.registerUser(
-        username,
-        email,
-        password,
+      // Save the user data to the local database
+      await DatabaseHelper.instance.insertUser(user.toMap());
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration saved offline!')),
       );
 
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful!')),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: ${response.body}')),
-        );
-      }
+      // Navigate back to the home screen
+      Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving user data locally: $e')),
+      );
     }
   }
 
