@@ -5,8 +5,7 @@ import 'package:my_paint/models/user.dart';
 
 class DatabaseHelper {
   static final _databaseName = "MyPaint.db";
-  static final _databaseVersion =
-      3; // Increment to fix any existing schema issues
+  static final _databaseVersion = 3;
 
   // Notes table
   static final notesTable = "notes";
@@ -168,9 +167,19 @@ class DatabaseHelper {
     });
   }
 
-  Future<int> insert(Map<String, dynamic> row) async {
+  Future<int> insertNote(Map<String, dynamic> row) async {
     Database db = await instance.database;
     return await db.insert(notesTable, row);
+  }
+
+  Future<int> updateNote(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.update(
+      notesTable,
+      row,
+      where: '$columnId = ?',
+      whereArgs: [row[columnId]],
+    );
   }
 
   Future<List<Map<String, dynamic>>> queryAllRows() async {

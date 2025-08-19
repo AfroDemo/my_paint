@@ -40,7 +40,7 @@ class _AddNoteScreenState extends State<AddNoteScreen> {
       syncStatus: 'pending_create',
     );
 
-    await DatabaseHelper.instance.insert(note.toMap());
+    await DatabaseHelper.instance.insertNote(note.toMap());
 
     ScaffoldMessenger.of(
       context,

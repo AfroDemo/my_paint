@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:my_paint/models/note.dart';
 import 'package:my_paint/screens/add_note_screen.dart';
 import 'package:my_paint/services/api_service.dart';
@@ -69,7 +70,41 @@ class _HomeScreenState extends State<HomeScreen> {
         ).showSnackBar(const SnackBar(content: Text('Nothing to sync!')));
       }
 
-      // TODO: Add logic to sync notes here
+      final pendingNotes = await DatabaseHelper.instance.queryPendingNotes();
+
+      if (pendingNotes.isNotEmpty) {
+        final notesData = pendingNotes.map((e) => e.toMap()).toList();
+
+        final response = await http.post(
+          Uri.parse('http://192.168.1.150:8080/sync/notes'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(notesData),
+        );
+
+        if (response.statusCode == 200) {
+          for (var note in pendingNotes) {
+            note.syncStatus = 'synced';
+
+            await DatabaseHelper.instance.updateNote(note.toMap());
+          }
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Notes synchronized!')));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Notes sync failed: ${response.body}')),
+          );
+        }
+      }
+
+      if (pendingUsers.isEmpty && pendingNotes.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Nothing to sync!')));
+      }
 
       _refreshNotesList(); // Refresh the UI after sync
     } catch (e) {
