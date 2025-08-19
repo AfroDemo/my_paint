@@ -1,7 +1,7 @@
-import 'package:my_paint/models/note.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:my_paint/models/user.dart';
+import 'package:my_paint/models/note.dart';
 
 class DatabaseHelper {
   static final _databaseName = "MyPaint.db";
@@ -51,7 +51,8 @@ class DatabaseHelper {
     // Create notes table
     await db.execute('''
       CREATE TABLE $notesTable(
-        $columnId INTEGER PRIMARY KEY AUTOINCREMENT,
+        $columnId TEXT PRIMARY KEY,
+        userId INTEGER,
         $columnTitle TEXT NOT NULL,
         $columnContent TEXT NOT NULL,
         $columnPrivacyStatus TEXT NOT NULL,
@@ -76,13 +77,11 @@ class DatabaseHelper {
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Check if users table exists
       var tableExists = (await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='$usersTable'",
       )).isNotEmpty;
 
       if (!tableExists) {
-        // Create users table if it doesn't exist
         await db.execute('''
           CREATE TABLE $usersTable (
             $columnLocalId TEXT PRIMARY KEY,
@@ -96,13 +95,10 @@ class DatabaseHelper {
       }
     }
 
-    // Fix column name inconsistencies from version 2 to 3
     if (oldVersion < 3) {
-      // Check current column names and fix if needed
       var columns = await db.rawQuery("PRAGMA table_info($usersTable)");
       bool needsRecreation = false;
 
-      // Check if we have the old incorrect column names
       for (var column in columns) {
         String columnName = column['name'] as String;
         if (columnName == 'sync_status' ||
@@ -115,10 +111,7 @@ class DatabaseHelper {
       }
 
       if (needsRecreation) {
-        // Backup existing data
         var existingUsers = await db.query(usersTable);
-
-        // Drop and recreate table with correct column names
         await db.execute('DROP TABLE $usersTable');
         await db.execute('''
           CREATE TABLE $usersTable (
@@ -131,7 +124,6 @@ class DatabaseHelper {
           )
         ''');
 
-        // Restore data with correct column names
         for (var user in existingUsers) {
           await db.insert(usersTable, {
             columnLocalId: user['local_id'] ?? user['localId'],
@@ -146,7 +138,22 @@ class DatabaseHelper {
     }
   }
 
-  // User-related methods
+  // New method to get a user who is already synced
+  Future<User?> getSyncedUser() async {
+    Database db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      usersTable,
+      where: '$columnUserSyncStatus = ? AND $columnRemoteId IS NOT NULL',
+      whereArgs: ['synced'],
+      limit: 1, // We only need the first user
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<bool> hasUserRegistered() async {
     Database db = await instance.database;
     final count = Sqflite.firstIntValue(

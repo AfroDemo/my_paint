@@ -28,9 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // New method to handle synchronization
   void _syncData() async {
     try {
-      // 1. Check for pending users
-      final pendingUsers = await DatabaseHelper.instance.queryPendingUsers();
+      // Flag to check if any data was synced
+      bool syncedSuccessfully = false;
 
+      // 1. Sync Pending Users
+      final pendingUsers = await DatabaseHelper.instance.queryPendingUsers();
       if (pendingUsers.isNotEmpty) {
         final userToSync = pendingUsers.first;
         final response = await _apiService.registerUser(
@@ -40,42 +42,28 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         if (response.statusCode == 201) {
-          // User registration successful, update local DB
-          final remoteId = jsonDecode(
-            response.body,
-          )['id']; // Get the new ID from the backend
+          final remoteId = jsonDecode(response.body)['id'];
           userToSync.remoteId = remoteId;
           userToSync.syncStatus = 'synced';
           await DatabaseHelper.instance.updateUser(userToSync.toMap());
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('User account synced!')));
-        } else if (response.statusCode == 409) {
-          // Conflict: username or email is taken
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Registration failed: Username or email is already taken. Please update your details and try again.',
-              ),
-            ),
-          );
+          syncedSuccessfully = true;
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Sync failed: ${response.body}')),
+            SnackBar(content: Text('User sync failed: ${response.body}')),
           );
         }
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Nothing to sync!')));
       }
 
+      // 2. Sync Pending Notes
       final pendingNotes = await DatabaseHelper.instance.queryPendingNotes();
-
       if (pendingNotes.isNotEmpty) {
         final notesData = pendingNotes.map((e) => e.toMap()).toList();
 
         final response = await http.post(
+          // Use the correct IP for your setup
           Uri.parse('http://192.168.1.150:8080/sync/notes'),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
@@ -84,29 +72,30 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         if (response.statusCode == 200) {
+          // Mark all notes as synced
           for (var note in pendingNotes) {
             note.syncStatus = 'synced';
-
             await DatabaseHelper.instance.updateNote(note.toMap());
           }
-
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Notes synchronized!')));
+          syncedSuccessfully = true;
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Notes sync failed: ${response.body}')),
+            SnackBar(content: Text('Note sync failed: ${response.body}')),
           );
         }
       }
 
-      if (pendingUsers.isEmpty && pendingNotes.isEmpty) {
+      // 3. Final message check
+      if (!syncedSuccessfully) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Nothing to sync!')));
       }
 
-      _refreshNotesList(); // Refresh the UI after sync
+      _refreshNotesList();
     } catch (e) {
       ScaffoldMessenger.of(
         context,

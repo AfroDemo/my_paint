@@ -1,5 +1,10 @@
+// lib/models/note.dart
+
+import 'package:uuid/uuid.dart';
+
 class Note {
-  int? id;
+  String? id; // Change to String
+  int? userId; // Add this field
   String title;
   String content;
   String privacyStatus;
@@ -9,19 +14,22 @@ class Note {
 
   Note({
     this.id,
+    this.userId, // Add this to the constructor
     required this.title,
     required this.content,
     required this.privacyStatus,
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
-  });
+  }) {
+    // Generate a unique string ID locally
+    id ??= const Uuid().v4();
+  }
 
-  //convert a note object into a Map.The keys must correspond
-  //to the names of the columns in our database table
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId, // Add this key
       'title': title,
       'content': content,
       'privacy_status': privacyStatus,
@@ -31,10 +39,10 @@ class Note {
     };
   }
 
-  //constructor that creates a note object from  a Map
   factory Note.fromMap(Map<String, dynamic> map) {
     return Note(
       id: map['id'],
+      userId: map['user_id'], // Retrieve the user_id
       title: map['title'],
       content: map['content'],
       privacyStatus: map['privacy_status'],
