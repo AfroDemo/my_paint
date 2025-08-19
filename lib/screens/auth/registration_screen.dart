@@ -1,5 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:my_paint/models/user.dart'; // Import the new User model
+import 'package:my_paint/screens/home_screen.dart';
+import 'package:my_paint/services/api_service.dart';
 import 'package:my_paint/services/database_helper.dart'; // Import the database helper
 
 class RegistrationScreen extends StatefulWidget {
@@ -13,6 +16,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final ApiService _apiService = ApiService();
 
   void _registration() async {
     final username = _usernameController.text;
@@ -28,7 +32,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return;
     }
 
-    // Create a new User object with a 'pending_create' status
     final user = User(
       userName: username,
       email: email,
@@ -37,19 +40,52 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
 
     try {
-      // Save the user data to the local database
-      await DatabaseHelper.instance.insertUser(user.toMap());
+      final connectivityResult = await (Connectivity().checkConnectivity());
+      if (connectivityResult != ConnectivityResult.none) {
+        // We have a connection, try to register online first
+        final response = await _apiService.registerUser(
+          user.userName,
+          user.email,
+          user.password,
+        );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration saved offline!')),
+        if (response.statusCode == 201) {
+          // Success: save the synced user to local DB
+          user.syncStatus = 'synced';
+          await DatabaseHelper.instance.insertUser(user.toMap());
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Registration successful!')),
+          );
+        } else {
+          // Failure: save offline and show error
+          await DatabaseHelper.instance.insertUser(user.toMap());
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Online registration failed. Saved offline. Reason: ${response.body}',
+              ),
+            ),
+          );
+        }
+      } else {
+        // No connection, save offline
+        await DatabaseHelper.instance.insertUser(user.toMap());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No internet. Registration saved offline.'),
+          ),
+        );
+      }
+
+      // Navigate to the home screen after registration is handled
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
-
-      // Navigate back to the home screen
-      Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving user data locally: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 

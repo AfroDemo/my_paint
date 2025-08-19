@@ -1,5 +1,3 @@
-// lib/models/user.dart
-
 import 'package:uuid/uuid.dart';
 
 class User {
@@ -23,23 +21,23 @@ class User {
 
   Map<String, dynamic> toMap() {
     return {
-      'local_id': localId,
-      'remote_id': remoteId,
-      'username': userName,
+      'localId': localId, // Changed from 'local_id'
+      'remoteId': remoteId, // Changed from 'remote_id'
+      'userName': userName, // Changed from 'username'
       'email': email,
       'password': password,
-      'sync_status': syncStatus,
+      'syncStatus': syncStatus, // Changed from 'sync_status'
     };
   }
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      localId: map['local_id'] as String?,
-      remoteId: map['remote_id'] as int?,
-      userName: map['username'] as String,
+      localId: map['localId'] as String?, // Changed from 'local_id'
+      remoteId: map['remoteId'] as int?, // Changed from 'remote_id'
+      userName: map['userName'] as String, // Changed from 'username'
       email: map['email'] as String,
       password: map['password'] as String,
-      syncStatus: map['sync_status'] as String,
+      syncStatus: map['syncStatus'] as String, // Changed from 'sync_status'
     );
   }
 }
