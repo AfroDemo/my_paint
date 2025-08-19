@@ -5,11 +5,12 @@ import 'package:my_paint/models/note.dart';
 
 class DatabaseHelper {
   static final _databaseName = "MyPaint.db";
-  static final _databaseVersion = 3;
+  static final _databaseVersion = 4; // Increment to fix the column issue
 
   // Notes table
   static final notesTable = "notes";
   static final columnId = "id";
+  static final columnUserId = "user_id"; // Add this - matches your Note model
   static final columnTitle = "title";
   static final columnContent = "content";
   static final columnPrivacyStatus = "privacy_status";
@@ -52,7 +53,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE $notesTable(
         $columnId TEXT PRIMARY KEY,
-        userId INTEGER,
+        $columnUserId INTEGER,
         $columnTitle TEXT NOT NULL,
         $columnContent TEXT NOT NULL,
         $columnPrivacyStatus TEXT NOT NULL,
@@ -132,6 +133,56 @@ class DatabaseHelper {
             columnEmail: user['email'],
             columnPassword: user['password'],
             columnUserSyncStatus: user['sync_status'] ?? user['syncStatus'],
+          });
+        }
+      }
+    }
+
+    // Fix the notes table column name mismatch (version 4)
+    if (oldVersion < 4) {
+      // Check if notes table has userId (camelCase) instead of user_id (snake_case)
+      var noteColumns = await db.rawQuery("PRAGMA table_info($notesTable)");
+      bool hasWrongColumn = false;
+
+      for (var column in noteColumns) {
+        String columnName = column['name'] as String;
+        if (columnName == 'userId') {
+          hasWrongColumn = true;
+          break;
+        }
+      }
+
+      if (hasWrongColumn) {
+        // Backup existing notes
+        var existingNotes = await db.query(notesTable);
+
+        // Recreate notes table with correct column name
+        await db.execute('DROP TABLE $notesTable');
+        await db.execute('''
+          CREATE TABLE $notesTable(
+            $columnId TEXT PRIMARY KEY,
+            $columnUserId INTEGER,
+            $columnTitle TEXT NOT NULL,
+            $columnContent TEXT NOT NULL,
+            $columnPrivacyStatus TEXT NOT NULL,
+            $columnCreatedAt TEXT NOT NULL,
+            $columnUpdatedAt TEXT NOT NULL,
+            $columnSyncStatus TEXT NOT NULL
+          )
+        ''');
+
+        // Restore notes with correct column mapping
+        for (var note in existingNotes) {
+          await db.insert(notesTable, {
+            columnId: note['id'],
+            columnUserId:
+                note['userId'], // Map from old camelCase to new snake_case
+            columnTitle: note['title'],
+            columnContent: note['content'],
+            columnPrivacyStatus: note['privacy_status'],
+            columnCreatedAt: note['created_at'],
+            columnUpdatedAt: note['updated_at'],
+            columnSyncStatus: note['sync_status'],
           });
         }
       }
