@@ -1,6 +1,7 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:my_paint/models/user.dart'; // Import the new User model
+import 'package:my_paint/screens/auth/login_screen.dart';
 import 'package:my_paint/screens/home_screen.dart';
 import 'package:my_paint/services/api_service.dart';
 import 'package:my_paint/services/database_helper.dart'; // Import the database helper
@@ -118,6 +119,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ElevatedButton(
               onPressed: _registration,
               child: const Text('Register'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              child: const Text('Already have an account? Login here.'),
             ),
           ],
         ),

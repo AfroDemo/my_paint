@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_paint/screens/auth/registration_screen.dart';
 import 'package:my_paint/screens/home_screen.dart';
 import 'package:my_paint/services/api_service.dart';
 import 'package:my_paint/services/database_helper.dart';
@@ -85,6 +86,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(onPressed: _login, child: const Text('Login')),
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const RegistrationScreen(),
+                  ),
+                );
+              },
+              child: const Text('Don\'t have an account? Register here.'),
+            ),
           ],
         ),
       ),
