@@ -32,6 +32,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       return;
     }
 
+    // Create the User object
     final user = User(
       userName: username,
       email: email,
@@ -41,23 +42,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     try {
       final connectivityResult = await (Connectivity().checkConnectivity());
+
       if (connectivityResult != ConnectivityResult.none) {
-        // We have a connection, try to register online first
-        final response = await _apiService.registerUser(
+        // If connected, try to register online first
+        final response = await ApiService().registerUser(
           user.userName,
           user.email,
           user.password,
         );
 
         if (response.statusCode == 201) {
-          // Success: save the synced user to local DB
+          // Online registration successful! Save the user as synced.
           user.syncStatus = 'synced';
           await DatabaseHelper.instance.insertUser(user.toMap());
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Registration successful!')),
           );
         } else {
-          // Failure: save offline and show error
+          // Online registration failed (e.g., username taken). Save offline.
           await DatabaseHelper.instance.insertUser(user.toMap());
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -68,7 +71,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           );
         }
       } else {
-        // No connection, save offline
+        // No internet connection, save offline directly.
         await DatabaseHelper.instance.insertUser(user.toMap());
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -77,7 +80,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
       }
 
-      // Navigate to the home screen after registration is handled
+      // Always navigate to the home screen after handling registration
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
